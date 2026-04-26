@@ -226,21 +226,6 @@ class GentoSecureLock:
                 subprocess.run(["shutdown", "/a"], capture_output=True)
             except: pass
             
-            # --- 본체 전원 버튼 무력화 (제어판 전원 옵션 강제 수정) ---
-            try:
-                # 정책(Policy) 레지스트리를 통한 강제 제어 (0 = 아무것도 안 함)
-                power_key_path = r"SOFTWARE\Policies\Microsoft\Power\PowerSettings\7648EFA3-DD9C-4E3E-B566-50F929386280"
-                power_key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, power_key_path)
-                winreg.SetValueEx(power_key, "ACSettingIndex", 0, winreg.REG_DWORD, 0)
-                winreg.SetValueEx(power_key, "DCSettingIndex", 0, winreg.REG_DWORD, 0)
-                winreg.CloseKey(power_key)
-                
-                # 즉시 적용을 위해 powercfg 새로고침
-                CREATE_NO_WINDOW = 0x08000000
-                subprocess.run(["powercfg", "-SetActive", "SCHEME_CURRENT"], capture_output=True, creationflags=CREATE_NO_WINDOW)
-            except Exception as e:
-                print(f"Power Button Disable Failed: {e}")
-            
             # --- Ctrl+Alt+Delete 옵션 비활성화 ---
             try:
                 # System 정책 (작업관리자, 잠금, 암호변경 비활성화)
@@ -287,20 +272,6 @@ class GentoSecureLock:
                     winreg.SetValueEx(hklm_key, "HideFastUserSwitching", 0, winreg.REG_DWORD, 0)
                     winreg.CloseKey(hklm_key)
                 except: pass
-                
-                # --- 본체 전원 버튼 원상복구 ---
-                try:
-                    # 3 = 시스템 종료
-                    power_key_path = r"SOFTWARE\Policies\Microsoft\Power\PowerSettings\7648EFA3-DD9C-4E3E-B566-50F929386280"
-                    power_key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, power_key_path)
-                    winreg.SetValueEx(power_key, "ACSettingIndex", 0, winreg.REG_DWORD, 3)
-                    winreg.SetValueEx(power_key, "DCSettingIndex", 0, winreg.REG_DWORD, 3)
-                    winreg.CloseKey(power_key)
-                    
-                    CREATE_NO_WINDOW = 0x08000000
-                    subprocess.run(["powercfg", "-SetActive", "SCHEME_CURRENT"], capture_output=True, creationflags=CREATE_NO_WINDOW)
-                except Exception as e:
-                    pass
                 
             except Exception as e:
                 print(f"Registry Restore Failed: {e}")
