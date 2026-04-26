@@ -224,6 +224,16 @@ class GentoSecureLock:
                 subprocess.run(["shutdown", "/a"], capture_output=True)
             except: pass
             
+            # --- 본체 전원 버튼 동작 비활성화 (짧게 누름 무력화) ---
+            try:
+                # 4f971e89...: 전원 버튼 하위 그룹 / 7648efa3...: 전원 버튼 동작 / 0: 아무것도 안 함
+                CREATE_NO_WINDOW = 0x08000000
+                subprocess.run(["powercfg", "-setacvalueindex", "SCHEME_CURRENT", "4f971e89-eabd-4445-98eb-4b226c04d2b4", "7648efa3-dd9c-4e3e-b566-50f929386280", "0"], capture_output=True, creationflags=CREATE_NO_WINDOW)
+                subprocess.run(["powercfg", "-setdcvalueindex", "SCHEME_CURRENT", "4f971e89-eabd-4445-98eb-4b226c04d2b4", "7648efa3-dd9c-4e3e-b566-50f929386280", "0"], capture_output=True, creationflags=CREATE_NO_WINDOW)
+                subprocess.run(["powercfg", "-SetActive", "SCHEME_CURRENT"], capture_output=True, creationflags=CREATE_NO_WINDOW)
+            except Exception as e:
+                print(f"Power Button Disable Failed: {e}")
+            
             # --- Ctrl+Alt+Delete 옵션 비활성화 ---
             try:
                 # System 정책 (작업관리자, 잠금, 암호변경 비활성화)
@@ -270,6 +280,14 @@ class GentoSecureLock:
                     winreg.SetValueEx(hklm_key, "HideFastUserSwitching", 0, winreg.REG_DWORD, 0)
                     winreg.CloseKey(hklm_key)
                 except: pass
+                
+                # --- 본체 전원 버튼 동작 복구 (시스템 종료로 원상복구) ---
+                # 3: 시스템 종료
+                CREATE_NO_WINDOW = 0x08000000
+                subprocess.run(["powercfg", "-setacvalueindex", "SCHEME_CURRENT", "4f971e89-eabd-4445-98eb-4b226c04d2b4", "7648efa3-dd9c-4e3e-b566-50f929386280", "3"], capture_output=True, creationflags=CREATE_NO_WINDOW)
+                subprocess.run(["powercfg", "-setdcvalueindex", "SCHEME_CURRENT", "4f971e89-eabd-4445-98eb-4b226c04d2b4", "7648efa3-dd9c-4e3e-b566-50f929386280", "3"], capture_output=True, creationflags=CREATE_NO_WINDOW)
+                subprocess.run(["powercfg", "-SetActive", "SCHEME_CURRENT"], capture_output=True, creationflags=CREATE_NO_WINDOW)
+                
             except Exception as e:
                 print(f"Registry Restore Failed: {e}")
 
