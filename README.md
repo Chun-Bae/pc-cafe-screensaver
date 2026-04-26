@@ -3,7 +3,7 @@
 안녕하세요! PC방의 유휴 화면을 안전하게 보호하고, 지정된 시간에 맞춰 자동으로 PC를 종료해주는 스마트한 화면보호기 프로그램이에요.
 
 <div align="center">
-  <img src="./img/setup_screen_desc.PNG" width="80%">
+  <img src="./img/setup_screen_desc.PNG" width="50%">
 </div>
 
 ### 사용 방법
@@ -21,7 +21,7 @@
 모든 설정을 마쳤다면 `START SECURE LOCK` 버튼을 꾹 눌러주세요!
 
 <div align="center">
-  <img src="./img/setup_screen_2.PNG" width="80%">
+  <img src="./img/setup_screen_2.PNG" width="50%">
 </div>
 
 ### 화면 잠금 상태
