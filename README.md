@@ -11,6 +11,12 @@
   <img src="./img/setup_screen_desc.PNG" width="50%">
 </div>
 
+### 📥 다운로드 및 설치
+
+1. 우측에 위치한 [Releases 페이지](https://github.com/Chun-Bae/pc-cafe-screensaver/releases)에 접속해 주세요.
+2. 가장 최신 버전의 `Assets` 항목에서 `screensaver.exe` 파일을 다운로드합니다.
+3. 다운로드한 파일을 더블 클릭하여 실행하시면 복잡한 과정 없이 바로 작동합니다!
+
 ### 📖 사용 방법
 
 1. **비밀번호 설정**: 화면 잠금을 해제할 때 사용할 비밀번호를 숫자만 이용해서 적어주세요.
