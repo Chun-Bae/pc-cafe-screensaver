@@ -7,6 +7,8 @@ import subprocess
 import platform
 import time
 import winreg
+import sys
+import ctypes
 
 # --- IMPORTANT: External Libraries ---
 # Run 'pip install keyboard pyautogui' before executing this script.
@@ -222,11 +224,26 @@ class GentoSecureLock:
                 subprocess.run(["shutdown", "/a"], capture_output=True)
             except: pass
             
-            # --- 작업 관리자 비활성화 (Ctrl+Alt+Delete 대응) ---
+            # --- Ctrl+Alt+Delete 옵션 비활성화 ---
             try:
-                registry_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Policies\System")
-                winreg.SetValueEx(registry_key, "DisableTaskMgr", 0, winreg.REG_DWORD, 1)
-                winreg.CloseKey(registry_key)
+                # System 정책 (작업관리자, 잠금, 암호변경 비활성화)
+                sys_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Policies\System")
+                winreg.SetValueEx(sys_key, "DisableTaskMgr", 0, winreg.REG_DWORD, 1)
+                winreg.SetValueEx(sys_key, "DisableLockWorkstation", 0, winreg.REG_DWORD, 1)
+                winreg.SetValueEx(sys_key, "DisableChangePassword", 0, winreg.REG_DWORD, 1)
+                winreg.CloseKey(sys_key)
+                
+                # Explorer 정책 (로그아웃 비활성화)
+                exp_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer")
+                winreg.SetValueEx(exp_key, "NoLogoff", 0, winreg.REG_DWORD, 1)
+                winreg.CloseKey(exp_key)
+                
+                # 로컬 머신 정책 (사용자 전환 비활성화 - 관리자 권한 필요)
+                try:
+                    hklm_key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")
+                    winreg.SetValueEx(hklm_key, "HideFastUserSwitching", 0, winreg.REG_DWORD, 1)
+                    winreg.CloseKey(hklm_key)
+                except: pass
             except Exception as e:
                 print(f"Registry Edit Failed: {e}")
 
@@ -238,9 +255,21 @@ class GentoSecureLock:
         """작업 관리자 비활성화 등 보안 설정 원상복구"""
         if platform.system() == "Windows":
             try:
-                registry_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Policies\System")
-                winreg.SetValueEx(registry_key, "DisableTaskMgr", 0, winreg.REG_DWORD, 0)
-                winreg.CloseKey(registry_key)
+                sys_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Policies\System")
+                winreg.SetValueEx(sys_key, "DisableTaskMgr", 0, winreg.REG_DWORD, 0)
+                winreg.SetValueEx(sys_key, "DisableLockWorkstation", 0, winreg.REG_DWORD, 0)
+                winreg.SetValueEx(sys_key, "DisableChangePassword", 0, winreg.REG_DWORD, 0)
+                winreg.CloseKey(sys_key)
+                
+                exp_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer")
+                winreg.SetValueEx(exp_key, "NoLogoff", 0, winreg.REG_DWORD, 0)
+                winreg.CloseKey(exp_key)
+                
+                try:
+                    hklm_key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")
+                    winreg.SetValueEx(hklm_key, "HideFastUserSwitching", 0, winreg.REG_DWORD, 0)
+                    winreg.CloseKey(hklm_key)
+                except: pass
             except Exception as e:
                 print(f"Registry Restore Failed: {e}")
 
@@ -400,6 +429,23 @@ class GentoSecureLock:
         self.root.mainloop()
 
 if __name__ == "__main__":
+    # --- 관리자 권한 자동 취득 ---
+    if platform.system() == "Windows":
+        try:
+            is_admin = ctypes.windll.shell32.IsUserAnAdmin()
+        except:
+            is_admin = False
+            
+        if not is_admin:
+            # 관리자 권한이 없으면 UAC 창을 띄우고 재실행 (exe와 py 스크립트 모두 대응)
+            if sys.argv[0].endswith('.py'):
+                params = " ".join([f'"{arg}"' for arg in sys.argv])
+                ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+            else:
+                params = " ".join([f'"{arg}"' for arg in sys.argv[1:]])
+                ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+            sys.exit(0)
+
     # Start the setup window first
     setup_app = SetupWindow()
     setup_app.run()
