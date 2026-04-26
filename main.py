@@ -6,6 +6,7 @@ from datetime import datetime
 import subprocess
 import platform
 import time
+import winreg
 
 # --- IMPORTANT: External Libraries ---
 # Run 'pip install keyboard pyautogui' before executing this script.
@@ -220,10 +221,28 @@ class GentoSecureLock:
             try:
                 subprocess.run(["shutdown", "/a"], capture_output=True)
             except: pass
+            
+            # --- 작업 관리자 비활성화 (Ctrl+Alt+Delete 대응) ---
+            try:
+                registry_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Policies\System")
+                winreg.SetValueEx(registry_key, "DisableTaskMgr", 0, winreg.REG_DWORD, 1)
+                winreg.CloseKey(registry_key)
+            except Exception as e:
+                print(f"Registry Edit Failed: {e}")
 
         if HAS_KEYBOARD_LIB:
             # 커널 수준에서 모든 키를 가로채고 숫자/제어키만 허용
             keyboard.hook(self.os_level_input_filter, suppress=True)
+
+    def restore_security(self):
+        """작업 관리자 비활성화 등 보안 설정 원상복구"""
+        if platform.system() == "Windows":
+            try:
+                registry_key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Policies\System")
+                winreg.SetValueEx(registry_key, "DisableTaskMgr", 0, winreg.REG_DWORD, 0)
+                winreg.CloseKey(registry_key)
+            except Exception as e:
+                print(f"Registry Restore Failed: {e}")
 
     def os_level_input_filter(self, event):
         """숫자 및 백스페이스만 허용하는 OS 레벨 필터"""
@@ -342,6 +361,8 @@ class GentoSecureLock:
         # 1. 키보드 훅 해제 (클릭 및 시스템 복구를 위해 우선 수행)
         if HAS_KEYBOARD_LIB:
             keyboard.unhook_all()
+        
+        self.restore_security()
             
         # 2. 지정된 좌표 클릭
         if HAS_PYAUTOGUI:
@@ -358,6 +379,7 @@ class GentoSecureLock:
         if self.password_entry.get() == self.target_password:
             if HAS_KEYBOARD_LIB:
                 keyboard.unhook_all()
+            self.restore_security()
             self.root.destroy()
         else:
             self.shake_ui()
