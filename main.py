@@ -9,6 +9,7 @@ import time
 import winreg
 import sys
 import ctypes
+import atexit
 
 # --- IMPORTANT: External Libraries ---
 # Run 'pip install keyboard pyautogui' before executing this script.
@@ -196,6 +197,7 @@ class GentoSecureLock:
         
         # 1. 시스템 보안 설정
         self.enforce_security()
+        atexit.register(self.restore_security)
         
         # 2. 강력한 전체화면 및 최상단 설정
         self.root.overrideredirect(True)
@@ -224,12 +226,17 @@ class GentoSecureLock:
                 subprocess.run(["shutdown", "/a"], capture_output=True)
             except: pass
             
-            # --- 본체 전원 버튼 동작 비활성화 (짧게 누름 무력화) ---
+            # --- 본체 전원 버튼 무력화 (제어판 전원 옵션 강제 수정) ---
             try:
-                # 4f971e89...: 전원 버튼 하위 그룹 / 7648efa3...: 전원 버튼 동작 / 0: 아무것도 안 함
+                # 정책(Policy) 레지스트리를 통한 강제 제어 (0 = 아무것도 안 함)
+                power_key_path = r"SOFTWARE\Policies\Microsoft\Power\PowerSettings\7648EFA3-DD9C-4E3E-B566-50F929386280"
+                power_key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, power_key_path)
+                winreg.SetValueEx(power_key, "ACSettingIndex", 0, winreg.REG_DWORD, 0)
+                winreg.SetValueEx(power_key, "DCSettingIndex", 0, winreg.REG_DWORD, 0)
+                winreg.CloseKey(power_key)
+                
+                # 즉시 적용을 위해 powercfg 새로고침
                 CREATE_NO_WINDOW = 0x08000000
-                subprocess.run(["powercfg", "-setacvalueindex", "SCHEME_CURRENT", "4f971e89-eabd-4445-98eb-4b226c04d2b4", "7648efa3-dd9c-4e3e-b566-50f929386280", "0"], capture_output=True, creationflags=CREATE_NO_WINDOW)
-                subprocess.run(["powercfg", "-setdcvalueindex", "SCHEME_CURRENT", "4f971e89-eabd-4445-98eb-4b226c04d2b4", "7648efa3-dd9c-4e3e-b566-50f929386280", "0"], capture_output=True, creationflags=CREATE_NO_WINDOW)
                 subprocess.run(["powercfg", "-SetActive", "SCHEME_CURRENT"], capture_output=True, creationflags=CREATE_NO_WINDOW)
             except Exception as e:
                 print(f"Power Button Disable Failed: {e}")
@@ -281,12 +288,19 @@ class GentoSecureLock:
                     winreg.CloseKey(hklm_key)
                 except: pass
                 
-                # --- 본체 전원 버튼 동작 복구 (시스템 종료로 원상복구) ---
-                # 3: 시스템 종료
-                CREATE_NO_WINDOW = 0x08000000
-                subprocess.run(["powercfg", "-setacvalueindex", "SCHEME_CURRENT", "4f971e89-eabd-4445-98eb-4b226c04d2b4", "7648efa3-dd9c-4e3e-b566-50f929386280", "3"], capture_output=True, creationflags=CREATE_NO_WINDOW)
-                subprocess.run(["powercfg", "-setdcvalueindex", "SCHEME_CURRENT", "4f971e89-eabd-4445-98eb-4b226c04d2b4", "7648efa3-dd9c-4e3e-b566-50f929386280", "3"], capture_output=True, creationflags=CREATE_NO_WINDOW)
-                subprocess.run(["powercfg", "-SetActive", "SCHEME_CURRENT"], capture_output=True, creationflags=CREATE_NO_WINDOW)
+                # --- 본체 전원 버튼 원상복구 ---
+                try:
+                    # 3 = 시스템 종료
+                    power_key_path = r"SOFTWARE\Policies\Microsoft\Power\PowerSettings\7648EFA3-DD9C-4E3E-B566-50F929386280"
+                    power_key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, power_key_path)
+                    winreg.SetValueEx(power_key, "ACSettingIndex", 0, winreg.REG_DWORD, 3)
+                    winreg.SetValueEx(power_key, "DCSettingIndex", 0, winreg.REG_DWORD, 3)
+                    winreg.CloseKey(power_key)
+                    
+                    CREATE_NO_WINDOW = 0x08000000
+                    subprocess.run(["powercfg", "-SetActive", "SCHEME_CURRENT"], capture_output=True, creationflags=CREATE_NO_WINDOW)
+                except Exception as e:
+                    pass
                 
             except Exception as e:
                 print(f"Registry Restore Failed: {e}")
